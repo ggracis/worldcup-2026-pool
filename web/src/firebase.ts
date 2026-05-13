@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, OAuthProvider } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import { getStorage } from 'firebase/storage';
 
@@ -23,6 +23,11 @@ export const analytics = getAnalytics(app);
 // Initialize Auth
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const microsoftProvider = new OAuthProvider('microsoft.com');
+const msTenantId = import.meta.env.VITE_MICROSOFT_TENANT_ID as string | undefined;
+if (msTenantId) {
+  microsoftProvider.setCustomParameters({ tenant: msTenantId });
+}
 
 // Initialize Realtime Database
 export const db = getDatabase(app);

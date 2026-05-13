@@ -23,6 +23,7 @@ export interface UserData {
   photoURL: string;
   score: number;
   admin: boolean;
+  enabled: boolean;
 }
 
 export const RESERVED_USERNAMES = [
@@ -77,6 +78,9 @@ export const sanitizeUsername = (input: string): string => {
     .replace(/\.$/, ''); // Remove trailing dot
 };
 
+const requirePaymentValidation =
+  import.meta.env.VITE_REQUIRE_PAYMENT_VALIDATION === 'true';
+
 export const handleUserLogin = async (user: User) => {
   const userRef = ref(db, `users/${user.uid}`);
   const snapshot = await get(userRef);
@@ -99,6 +103,8 @@ export const handleUserLogin = async (user: User) => {
       photoURL: user.photoURL || '',
       score: 0,
       admin: isFirstUser,
+      // Admins and non-payment instances start enabled; paid instance starts disabled
+      enabled: isFirstUser || !requirePaymentValidation,
     };
 
     // Save user data and claim username atomically (store normalized version in index)
@@ -108,7 +114,10 @@ export const handleUserLogin = async (user: User) => {
     return userData;
   }
 
-  return snapshot.val() as UserData;
+  const data = snapshot.val() as UserData;
+  // Backfill: existing users without the field are treated as enabled
+  if (data.enabled === undefined) data.enabled = true;
+  return data;
 };
 
 /**
@@ -249,6 +258,33 @@ export const uploadProfilePicture = async (
 export interface UserWithId extends UserData {
   id: string;
 }
+
+/**
+ * Fetches the Microsoft profile photo via Graph API and uploads it to Firebase Storage.
+ * Returns the download URL, or null if unavailable.
+ */
+export const fetchMicrosoftProfilePhoto = async (
+  uid: string,
+  accessToken: string
+): Promise<string | null> => {
+  const response = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) return null;
+  const blob = await response.blob();
+  const file = new File([blob], 'profile.jpg', { type: blob.type || 'image/jpeg' });
+  return uploadProfilePicture(uid, file);
+};
+
+/**
+ * Enable or disable a user account (admin only).
+ */
+export const toggleUserEnabled = async (
+  uid: string,
+  enabled: boolean
+): Promise<void> => {
+  await update(ref(db, `users/${uid}`), { enabled });
+};
 
 /**
  * Subscribe to all users with real-time updates, sorted by score descending.

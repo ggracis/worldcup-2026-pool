@@ -48,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = React.useState<User | null>(null);
   const [userData, setUserData] = React.useState<UserData | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [pendingValidation, setPendingValidation] = React.useState(false);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -55,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (currentUser) {
         handleUserLogin(currentUser)
           .then(async (data) => {
+            setPendingValidation(data.enabled === false);
             setUserData(data);
 
             // Check for pending join intent
@@ -88,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           });
       } else {
         setUserData(null);
+        setPendingValidation(false);
         setLoading(false);
       }
     });
@@ -99,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     user,
     userData,
     loading,
+    pendingValidation,
     setUserData,
   };
 

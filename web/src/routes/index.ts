@@ -1,4 +1,7 @@
 export { About } from './About';
+export { AdminUsers } from './AdminUsers';
+export { Login } from './Login';
+export { Pending } from './Pending';
 export { EditLeague } from './EditLeague';
 export { EditProfile } from './EditProfile';
 export { Home } from './Home';
@@ -8,4 +11,5 @@ export { LeagueDetail } from './LeagueDetail';
 export { Leagues } from './Leagues';
 export { NewLeague } from './NewLeague';
 export { Rules } from './Rules';
+export { Terms } from './Terms';
 export { UserProfile } from './UserProfile';

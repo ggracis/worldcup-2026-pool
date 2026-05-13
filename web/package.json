@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:paid": "tsc -b && vite build --mode paid",
+    "deploy:work": "npm run build && firebase deploy --only hosting -P work",
+    "deploy:paid": "npm run build:paid && firebase deploy --only hosting -P paid",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "preview": "vite preview"

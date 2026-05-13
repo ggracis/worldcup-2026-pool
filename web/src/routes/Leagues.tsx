@@ -74,14 +74,14 @@ export const Leagues = () => {
     <AppLayout>
       <div className="pt-8 px-4 pb-8 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-white">My Leagues</h1>
+          <h1 className="text-3xl font-bold text-white">Mis ligas</h1>
           {user && (
             <div className="flex gap-2">
               <Button onClick={() => setShowJoin(true)} className="text-sm">
-                Join
+                Unirse
               </Button>
               <LinkButton to="/leagues/new" className="text-sm">
-                Create
+                Crear
               </LinkButton>
             </div>
           )}
@@ -89,7 +89,7 @@ export const Leagues = () => {
 
         {!user && (
           <Card className="mb-6 p-6 text-center">
-            <p className="text-white/70">Sign in to create or join leagues</p>
+            <p className="text-white/70">Iniciá sesión para crear o unirte a ligas</p>
           </Card>
         )}
 
@@ -97,14 +97,14 @@ export const Leagues = () => {
         {showJoin && (
           <Card className="p-6 mb-6">
             <h2 className="text-xl font-semibold text-white mb-4">
-              Join League
+              Unirse a una liga
             </h2>
             <form onSubmit={(e) => void handleJoinLeague(e)}>
               <input
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="Enter invite code"
+                placeholder="Código de invitación"
                 className={`${inputClass} uppercase tracking-widest text-center font-mono`}
                 maxLength={6}
                 autoFocus
@@ -120,14 +120,14 @@ export const Leagues = () => {
                   }}
                   className="flex-1"
                 >
-                  Cancel
+                  Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={joining || inviteCode.length < 6}
                   className="flex-1"
                 >
-                  {joining ? 'Joining...' : 'Join'}
+                  {joining ? 'Uniéndose...' : 'Unirse'}
                 </Button>
               </div>
             </form>
@@ -136,7 +136,7 @@ export const Leagues = () => {
 
         {/* Leagues List */}
         {loading ? (
-          <div className="text-center text-white/70 py-20">Loading...</div>
+          <div className="text-center text-white/70 py-20">Cargando...</div>
         ) : (
           <div className="space-y-3">
             {/* Global League */}
@@ -158,7 +158,7 @@ export const Leagues = () => {
                     <h3 className="text-lg font-semibold text-white truncate">
                       FIFA WC 2026 POOL
                     </h3>
-                    <p className="text-white/50 text-sm">Global Leaderboard</p>
+                    <p className="text-white/50 text-sm">Tabla global</p>
                   </div>
                   <span className="text-white/30">→</span>
                 </div>
@@ -169,10 +169,10 @@ export const Leagues = () => {
             {leagues.length === 0 && user && (
               <Card className="p-6 text-center">
                 <p className="text-white/70 mb-4">
-                  You haven't joined any leagues yet
+                  No estás en ninguna liga todavía
                 </p>
                 <p className="text-white/50 text-sm">
-                  Create your own league or join one with an invite code
+                  Creá tu propia liga o unite con un código de invitación
                 </p>
               </Card>
             )}
@@ -201,7 +201,7 @@ export const Leagues = () => {
                       </h3>
                       <p className="text-white/50 text-sm">
                         {league.memberCount}{' '}
-                        {league.memberCount === 1 ? 'member' : 'members'}
+                        {league.memberCount === 1 ? 'participante' : 'participantes'}
                       </p>
                     </div>
                     <span className="text-white/30">→</span>

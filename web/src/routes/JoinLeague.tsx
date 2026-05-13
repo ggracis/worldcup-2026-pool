@@ -1,6 +1,11 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
+import {
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import { bgImage, worldcupLogo } from '../assets';
 import { AppLayout, Button, Card, LeaguePicture } from '../components';
@@ -44,6 +49,25 @@ export const JoinLeague = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [joining, setJoining] = React.useState(false);
   const [signingIn, setSigningIn] = React.useState(false);
+
+  // Email auth state
+  const [emailMode, setEmailMode] = React.useState<'login' | 'register'>('login');
+  const [emailName, setEmailName] = React.useState('');
+  const [emailValue, setEmailValue] = React.useState('');
+  const [emailPassword, setEmailPassword] = React.useState('');
+  const [emailError, setEmailError] = React.useState<string | null>(null);
+
+  const getEmailErrorMessage = (code: string): string => {
+    const messages: Record<string, string> = {
+      'auth/user-not-found': 'No existe una cuenta con ese email',
+      'auth/wrong-password': 'Contraseña incorrecta',
+      'auth/email-already-in-use': 'Ya existe una cuenta con ese email',
+      'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres',
+      'auth/invalid-email': 'Email inválido',
+      'auth/invalid-credential': 'Email o contraseña incorrectos',
+    };
+    return messages[code] ?? 'Error al iniciar sesión. Intentá de nuevo.';
+  };
 
   // Hide splash screen when ready
   React.useEffect(() => {
@@ -109,22 +133,42 @@ export const JoinLeague = () => {
     void performJoin();
   }, [authLoading, loading, league, user, joining, navigate]);
 
-  const handleSignIn = () => {
+  const storeIntent = () => {
     if (!league || !inviteCode) return;
+    setJoinIntent({ leagueId: league.id, slug: league.slug, inviteCode });
+  };
 
-    // Store join intent before signing in
-    setJoinIntent({
-      leagueId: league.id,
-      slug: league.slug,
-      inviteCode,
-    });
-
+  const handleSignIn = () => {
+    storeIntent();
     setSigningIn(true);
     signInWithPopup(auth, googleProvider).catch((err) => {
       console.error('Sign in error:', err);
       setSigningIn(false);
       clearJoinIntent();
     });
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError(null);
+    storeIntent();
+    setSigningIn(true);
+    try {
+      if (emailMode === 'register') {
+        const cred = await createUserWithEmailAndPassword(auth, emailValue, emailPassword);
+        if (emailName.trim()) {
+          await updateProfile(cred.user, { displayName: emailName.trim() });
+        }
+      } else {
+        await signInWithEmailAndPassword(auth, emailValue, emailPassword);
+      }
+      // AuthProvider's onAuthStateChanged will process the join intent
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? '';
+      setEmailError(getEmailErrorMessage(code));
+      setSigningIn(false);
+      clearJoinIntent();
+    }
   };
 
   // Show loading state
@@ -210,12 +254,70 @@ export const JoinLeague = () => {
             <p className="text-white/50 text-sm mb-6">
               Sign in to join this league and compete with friends!
             </p>
+            {/* Email/password form */}
+            <div className="flex mb-4 bg-white/10 rounded-lg p-1">
+              <button
+                onClick={() => { setEmailMode('login'); setEmailError(null); }}
+                className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${emailMode === 'login' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white/80'}`}
+              >
+                Ya tengo cuenta
+              </button>
+              <button
+                onClick={() => { setEmailMode('register'); setEmailError(null); }}
+                className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${emailMode === 'register' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white/80'}`}
+              >
+                Registrarme
+              </button>
+            </div>
+
+            <form onSubmit={(e) => void handleEmailSignIn(e)} className="space-y-2 mb-3">
+              {emailMode === 'register' && (
+                <input
+                  type="text"
+                  value={emailName}
+                  onChange={(e) => setEmailName(e.target.value)}
+                  placeholder="Tu nombre"
+                  required
+                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/50"
+                />
+              )}
+              <input
+                type="email"
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+                placeholder="Email"
+                required
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/50"
+              />
+              <input
+                type="password"
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
+                placeholder="Contraseña"
+                required
+                minLength={6}
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/50"
+              />
+              {emailError && <p className="text-red-400 text-xs text-center">{emailError}</p>}
+              <Button type="submit" disabled={signingIn} className="w-full">
+                {signingIn ? 'Cargando...' : emailMode === 'login' ? 'Ingresar' : 'Crear cuenta'}
+              </Button>
+            </form>
+
+            {/* Divider */}
+            <div className="flex items-center my-3">
+              <div className="flex-1 border-t border-white/20" />
+              <span className="px-3 text-white/40 text-xs">o</span>
+              <div className="flex-1 border-t border-white/20" />
+            </div>
+
             <Button
               onClick={handleSignIn}
               disabled={signingIn}
+              variant="secondary"
               className="w-full"
             >
-              {signingIn ? 'Signing in...' : 'Sign In with Google'}
+              {signingIn ? 'Cargando...' : 'Continuar con Google'}
             </Button>
           </Card>
         </div>

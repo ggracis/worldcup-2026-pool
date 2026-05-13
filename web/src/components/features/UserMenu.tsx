@@ -1,14 +1,18 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signOut, signInWithPopup, OAuthProvider } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
-import { auth, googleProvider } from '../../firebase';
+import { auth, microsoftProvider } from '../../firebase';
 import { sidebarMenuBg } from '../../assets';
 import { useAuth } from '../../hooks/useAuth';
 import { useLeague } from '../../hooks/useLeague';
-import { subscribeToLeaderboard, type UserWithId } from '../../services';
+import { subscribeToLeaderboard, fetchMicrosoftProfilePhoto, type UserWithId } from '../../services';
 import { getPositionCompact } from '../../utils';
 import { Button, ProfilePicture } from '../ui';
+
+const forceMicrosoft =
+  import.meta.env.VITE_FORCE_MICROSOFT_LOGIN === 'true' &&
+  import.meta.env.MODE !== 'paid';
 
 const menuItemClass =
   'w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2 rounded-lg text-sm';
@@ -27,7 +31,6 @@ export const UserMenu = ({ mobile = false }: UserMenuProps) => {
   const [allUsers, setAllUsers] = React.useState<UserWithId[]>([]);
   const buttonRef = React.useRef<HTMLDivElement>(null);
   const dropdownRef = React.useRef<HTMLUListElement>(null);
-  const justSignedIn = React.useRef(false);
 
   // Subscribe to leaderboard
   React.useEffect(() => {
@@ -53,14 +56,6 @@ export const UserMenu = ({ mobile = false }: UserMenuProps) => {
     const idx = allUsers.findIndex((u) => u.id === user.uid);
     return idx >= 0 ? idx + 1 : null;
   }, [user, allUsers, selectedLeague, leagueMemberIds]);
-
-  // Navigate to user profile after sign-in
-  React.useEffect(() => {
-    if (justSignedIn.current && userData?.userName) {
-      justSignedIn.current = false;
-      void navigate(`/${userData.userName}`);
-    }
-  }, [userData, navigate]);
 
   const handleSignOut = () => {
     signOut(auth)
@@ -90,23 +85,43 @@ export const UserMenu = ({ mobile = false }: UserMenuProps) => {
 
   const closeMenu = () => setIsOpen(false);
 
-  const handleSignIn = () => {
-    justSignedIn.current = true;
-    signInWithPopup(auth, googleProvider).catch((error) => {
-      justSignedIn.current = false;
-      console.error(error);
-    });
+  const [msLoading, setMsLoading] = React.useState(false);
+
+  const handleMicrosoftLogin = () => {
+    setMsLoading(true);
+    signInWithPopup(auth, microsoftProvider)
+      .then(async (result) => {
+        const credential = OAuthProvider.credentialFromResult(result);
+        if (credential?.accessToken) {
+          await fetchMicrosoftProfilePhoto(result.user.uid, credential.accessToken).catch(() => {});
+        }
+      })
+      .catch(console.error)
+      .finally(() => setMsLoading(false));
   };
 
   // Show sign in button if not authenticated
   if (!user) {
+    // Mobile always goes to /login — popups are unreliable on mobile browsers
+    if (mobile || !forceMicrosoft) {
+      return (
+        <Link to="/login">
+          <Button className={mobile ? 'text-xs' : 'w-full'}>
+            Ingresar
+          </Button>
+        </Link>
+      );
+    }
     return (
-      <Button onClick={handleSignIn} className={mobile ? 'text-xs' : 'w-full'}>
-        {mobile ? 'Sign In' : 'Sign In with Google'}
+      <Button
+        onClick={handleMicrosoftLogin}
+        disabled={msLoading}
+        className="w-full"
+      >
+        {msLoading ? 'Ingresando...' : 'Ingresar'}
       </Button>
     );
   }
-  console.log({ user });
   return (
     <div ref={buttonRef} className="relative">
       <Button
@@ -191,26 +206,15 @@ export const UserMenu = ({ mobile = false }: UserMenuProps) => {
             <>
               {/* Navigation Items (desktop only) */}
               {!mobile && (
-                <>
-                  <li>
-                    <Link
-                      to={`/${userData?.userName}`}
-                      onClick={closeMenu}
-                      className={menuItemClass}
-                    >
-                      <span>⚽</span> My Predictions
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/leagues"
-                      onClick={closeMenu}
-                      className={menuItemClass}
-                    >
-                      <span>🏆</span> My Leagues
-                    </Link>
-                  </li>
-                </>
+                <li>
+                  <Link
+                    to={`/${userData?.userName}`}
+                    onClick={closeMenu}
+                    className={menuItemClass}
+                  >
+                    <span>⚽</span> Mis predicciones
+                  </Link>
+                </li>
               )}
               <li>
                 <Link
@@ -218,34 +222,26 @@ export const UserMenu = ({ mobile = false }: UserMenuProps) => {
                   onClick={closeMenu}
                   className={menuItemClass}
                 >
-                  <span>✏️</span> Edit Profile
+                  <span>✏️</span> Editar perfil
                 </Link>
               </li>
               <li className={dividerClass} />
-              {/* Info Links (mobile only) */}
-              {mobile && (
+              {/* Admin */}
+              {userData?.admin && (
                 <>
-                  <li>
-                    <Link
-                      to="/rules"
-                      onClick={closeMenu}
-                      className={menuItemClass}
-                    >
-                      <span>📋</span> Rules
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/about"
-                      onClick={closeMenu}
-                      className={menuItemClass}
-                    >
-                      <span>ℹ️</span> About
-                    </Link>
-                  </li>
                   <li className={dividerClass} />
+                  <li>
+                    <Link
+                      to="/admin/users"
+                      onClick={closeMenu}
+                      className={menuItemClass}
+                    >
+                      <span>🛡️</span> Gestionar usuarios
+                    </Link>
+                  </li>
                 </>
               )}
+              <li className={dividerClass} />
               {/* Sign Out */}
               <li>
                 <button
@@ -255,7 +251,7 @@ export const UserMenu = ({ mobile = false }: UserMenuProps) => {
                   }}
                   className={menuItemClass}
                 >
-                  <span>👋</span> Sign Out
+                  <span>👋</span> Cerrar sesión
                 </button>
               </li>
             </>

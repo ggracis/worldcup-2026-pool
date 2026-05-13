@@ -135,14 +135,14 @@ export const LeaderboardList = ({
 
   if (loading) {
     return (
-      <div className="text-white/50 text-sm text-center py-4">Loading...</div>
+      <div className="text-white/50 text-sm text-center py-4">Cargando...</div>
     );
   }
 
   if (users.length === 0) {
     return (
       <div className="text-white/50 text-sm text-center py-4">
-        No players yet
+        Sin jugadores aún
       </div>
     );
   }
@@ -221,7 +221,7 @@ export const LeaderboardList = ({
           </div>
         ) : (
           <h3 className="text-white/70 text-xs font-medium uppercase tracking-wider mb-2 px-4">
-            Leaderboard
+            Tabla de posiciones
           </h3>
         ))}
       {/* Podium for full variant */}

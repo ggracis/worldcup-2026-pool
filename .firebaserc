@@ -1,6 +1,20 @@
 {
   "projects": {
-    "default": "worldcup-2026"
+    "default": "cnd-proyectos-1758925687125",
+    "work": "cnd-proyectos-1758925687125",
+    "paid": "fifa26came"
+  },
+  "targets": {
+    "cnd-proyectos-1758925687125": {
+      "hosting": {
+        "app": ["cnd-proyectos-1758925687125"]
+      }
+    },
+    "fifa26came": {
+      "hosting": {
+        "app": ["prode26"]
+      }
+    }
   }
 }
 

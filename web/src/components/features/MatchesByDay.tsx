@@ -22,11 +22,12 @@ export const MatchesByDay = ({
   const groupedByDay = Object.values(matches).reduce<Record<string, Match[]>>(
     (acc, match) => {
       const date = new Date(match.date);
-      const dayKey = date.toLocaleDateString('en-US', {
+      const dayKey = date.toLocaleDateString('es-AR', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        timeZone: 'America/Argentina/Buenos_Aires',
       });
 
       if (!acc[dayKey]) {

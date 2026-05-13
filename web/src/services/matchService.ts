@@ -63,6 +63,7 @@ const fetchFromFifaApi = async (): Promise<MatchesData> => {
   url.searchParams.set('idseason', SEASON_ID);
   url.searchParams.set('idcompetition', COMPETITION_ID);
   url.searchParams.set('count', '500');
+  url.searchParams.set('language', 'es-ES');
 
   const response = await fetch(url.toString());
   if (!response.ok) {

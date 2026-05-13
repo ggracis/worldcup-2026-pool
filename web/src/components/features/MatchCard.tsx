@@ -2,6 +2,96 @@ import React from 'react';
 import { type Match, type Prediction, savePrediction } from '../../services';
 import { Card } from '../ui/Card';
 
+const TEAM_NAMES_ES: Record<string, string> = {
+  'United States': 'Estados Unidos',
+  USA: 'EE.UU.',
+  England: 'Inglaterra',
+  Netherlands: 'Países Bajos',
+  Switzerland: 'Suiza',
+  Germany: 'Alemania',
+  Poland: 'Polonia',
+  Hungary: 'Hungría',
+  Belgium: 'Bélgica',
+  Turkey: 'Turquía',
+  Türkiye: 'Turquía',
+  Greece: 'Grecia',
+  Romania: 'Rumania',
+  Ukraine: 'Ucrania',
+  'Czech Republic': 'Rep. Checa',
+  Iceland: 'Islandia',
+  Slovakia: 'Eslovaquia',
+  Slovenia: 'Eslovenia',
+  Wales: 'Gales',
+  Ireland: 'Irlanda',
+  'South Korea': 'Corea del Sur',
+  'North Korea': 'Corea del Norte',
+  'Saudi Arabia': 'Arabia Saudita',
+  Japan: 'Japón',
+  Iran: 'Irán',
+  'New Zealand': 'Nueva Zelanda',
+  Morocco: 'Marruecos',
+  'Ivory Coast': 'Costa de Marfil',
+  "Côte d'Ivoire": 'Costa de Marfil',
+  'South Africa': 'Sudáfrica',
+  Cameroon: 'Camerún',
+  Tunisia: 'Túnez',
+  Egypt: 'Egipto',
+  Nigeria: 'Nigeria',
+  Brazil: 'Brasil',
+  Mexico: 'México',
+  Serbia: 'Serbia',
+  Portugal: 'Portugal',
+  Australia: 'Australia',
+  Ghana: 'Ghana',
+  Senegal: 'Senegal',
+  Kenya: 'Kenia',
+  Tanzania: 'Tanzania',
+  Uganda: 'Uganda',
+  Albania: 'Albania',
+  Montenegro: 'Montenegro',
+  Bosnia: 'Bosnia',
+  // Nombres que usa la API de FIFA
+  Czechia: 'Rep. Checa',
+  'Korea Republic': 'Corea del Sur',
+  'Bosnia and Herzegovina': 'Bosnia y Herzegovina',
+  Sweden: 'Suecia',
+  Spain: 'España',
+  'IR Iran': 'Irán',
+  Norway: 'Noruega',
+  Croatia: 'Croacia',
+  Denmark: 'Dinamarca',
+  Finland: 'Finlandia',
+  Russia: 'Rusia',
+  Scotland: 'Escocia',
+
+  'DR Congo': 'Rep. Dem. del Congo',
+  'Equatorial Guinea': 'Guinea Ecuatorial',
+  'Cape Verde': 'Cabo Verde',
+  'Burkina Faso': 'Burkina Faso',
+  'Chinese Taipei': 'Taiwán',
+  Oman: 'Omán',
+  Qatar: 'Catar',
+  'United Arab Emirates': 'Emiratos Árabes',
+  'Costa Rica': 'Costa Rica',
+  'Trinidad and Tobago': 'Trinidad y Tobago',
+  'El Salvador': 'El Salvador',
+  Honduras: 'Honduras',
+  Jamaica: 'Jamaica',
+  Panama: 'Panamá',
+  Cuba: 'Cuba',
+  Haiti: 'Haití',
+  Bolivia: 'Bolivia',
+  Chile: 'Chile',
+  Colombia: 'Colombia',
+  Ecuador: 'Ecuador',
+  Paraguay: 'Paraguay',
+  Peru: 'Perú',
+  Uruguay: 'Uruguay',
+  Venezuela: 'Venezuela',
+};
+
+const translateTeam = (name: string): string => TEAM_NAMES_ES[name] ?? name;
+
 // Import all flags dynamically
 const flagModules: Record<string, string> = import.meta.glob(
   '../../assets/flags/*.png',
@@ -29,20 +119,34 @@ export const MatchCard = ({
   prediction,
 }: MatchCardProps) => {
   const matchDate = new Date(match.date);
-  const timeString = matchDate.toLocaleTimeString([], {
+  const ARG_TZ = 'America/Argentina/Buenos_Aires';
+  const timeString = matchDate.toLocaleTimeString('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
+    timeZone: ARG_TZ,
   });
   const isPlayed = match.homeScore >= 0 && match.awayScore >= 0;
-  const cutoffTime = match.timestamp * 1000 - 10 * 60 * 1000; // 10 mins before kickoff
+  const cutoffTime = match.timestamp * 1000 - 10 * 60 * 1000;
   const predictionsClosed = Date.now() > cutoffTime;
 
-  // Match is live if it started but hasn't finished (assume ~2.5 hours for a full match)
-  // TODO: Implement this properly (check FIFA API)
   const kickoffTime = match.timestamp * 1000;
-  const matchEndEstimate = kickoffTime + 150 * 60 * 1000; // 2.5 hours after kickoff
+  const matchEndEstimate = kickoffTime + 150 * 60 * 1000;
   const isLive =
     !isPlayed && Date.now() >= kickoffTime && Date.now() < matchEndEstimate;
+  const isUpcoming = !isPlayed && !isLive;
+
+  const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`${match.homeName} vs ${match.awayName}`)}`;
+
+  const calendarUrl = (() => {
+    const start = new Date(kickoffTime);
+    const end = new Date(kickoffTime + 2 * 60 * 60 * 1000);
+    const fmt = (d: Date) => d.toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+    const title = encodeURIComponent(`${translateTeam(match.homeName)} vs ${translateTeam(match.awayName)} — FIFA World Cup 2026`);
+    const loc = encodeURIComponent(`${match.location}, ${match.locationCity}`);
+    const details = encodeURIComponent(match.group ? `Grupo ${match.group}` : match.round);
+    return `https://calendar.google.com/calendar/r/eventedit?text=${title}&dates=${fmt(start)}/${fmt(end)}&location=${loc}&details=${details}`;
+  })();
   const canPredict = isOwnProfile && userId && !predictionsClosed;
 
   const [homePrediction, setHomePrediction] = React.useState<string>(
@@ -92,9 +196,10 @@ export const MatchCard = ({
   const predictionClass =
     'w-10 h-8 flex items-center justify-center bg-blue-600/30 border border-blue-400/30 rounded text-lg font-bold';
 
-  const dateString = matchDate.toLocaleDateString([], {
+  const dateString = matchDate.toLocaleDateString('es-AR', {
     month: 'short',
     day: 'numeric',
+    timeZone: ARG_TZ,
   });
 
   const showPoints = isPlayed && prediction;
@@ -113,7 +218,7 @@ export const MatchCard = ({
               className="h-6 w-9 md:h-8 md:w-12 object-contain rounded-sm"
             />
             <span className="flex-1 font-medium text-sm md:text-base">
-              {match.homeName}
+              {translateTeam(match.homeName)}
             </span>
             <span className={scoreClass}>
               {isPlayed ? match.homeScore : '-'}
@@ -156,7 +261,7 @@ export const MatchCard = ({
               className="h-6 w-9 md:h-8 md:w-12 object-contain rounded-sm"
             />
             <span className="flex-1 font-medium text-sm md:text-base">
-              {match.awayName}
+              {translateTeam(match.awayName)}
             </span>
             <span className={scoreClass}>
               {isPlayed ? match.awayScore : '-'}
@@ -224,23 +329,58 @@ export const MatchCard = ({
         )}
       </div>
 
-      {/* Footer: Group, Stadium, Date/Time */}
+      {/* Footer: Group, Stadium, Date/Time, Icons */}
       <div className="flex items-center gap-2 text-xs text-white/50">
-        {match.group && <span>Group: {match.group}</span>}
+        {match.group && <span>Grupo: {match.group}</span>}
         {match.group && <span>·</span>}
         <span className="truncate">
           {match.locationCity}, {match.locationCountry}
         </span>
         <span>·</span>
-        <span>
+        <span className="shrink-0">
           {dateString}, {timeString}
         </span>
-        {isLive && (
-          <span className="ml-auto flex items-center gap-1.5 text-red-500 font-bold animate-pulse">
-            <span className="w-2 h-2 bg-red-500 rounded-full" />
-            LIVE
-          </span>
-        )}
+
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {isUpcoming && (
+            <a
+              href={calendarUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Agregar al calendario"
+              className="text-white/40 hover:text-white/80 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </a>
+          )}
+          {!isPlayed && (
+            <a
+              href={googleSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Buscar en Google"
+              className="text-white/40 hover:text-white/80 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </a>
+          )}
+          {isLive && (
+            <span className="flex items-center gap-1.5 text-red-500 font-bold animate-pulse">
+              <span className="w-2 h-2 bg-red-500 rounded-full" />
+              EN VIVO
+            </span>
+          )}
+        </div>
       </div>
     </Card>
   );

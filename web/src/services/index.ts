@@ -4,11 +4,13 @@ export type { Match, MatchesData } from './matchService';
 export {
   checkUsernameAvailable,
   deleteUserAccount,
+  fetchMicrosoftProfilePhoto,
   getUserByUsername,
   handleUserLogin,
   isReservedUsername,
   sanitizeUsername,
   subscribeToLeaderboard,
+  toggleUserEnabled,
   updateUserProfile,
   uploadProfilePicture,
 } from './userService';

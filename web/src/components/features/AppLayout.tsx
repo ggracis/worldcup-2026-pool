@@ -20,10 +20,13 @@ export const AppLayout = ({ children, className = '' }: AppLayoutProps) => {
     {
       to: userData ? `/${userData.userName}` : '/',
       icon: '⚽',
-      label: userData ? 'My Predictions' : 'All Matches',
+      label: userData ? 'Mis predicciones' : 'Partidos',
     },
-    { to: '/leaderboard', icon: '🥇', label: 'Leaderboard' },
-    { to: '/leagues', icon: '🏆', label: 'Leagues' },
+    { to: '/leaderboard', icon: '🥇', label: 'Tabla' },
+    { to: '/rules', icon: '📋', label: 'Reglamento' },
+    ...(import.meta.env.MODE === 'paid'
+      ? [{ to: '/terms', icon: '📄', label: 'Bases' }]
+      : []),
   ];
 
   // Fallback: hide splash after 1 second (for pages without data loading)

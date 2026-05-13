@@ -6,6 +6,7 @@ export interface AuthContextType {
   user: User | null;
   userData: UserData | null;
   loading: boolean;
+  pendingValidation: boolean;
   setUserData: (data: UserData | null) => void;
 }
 
@@ -13,5 +14,6 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   userData: null,
   loading: true,
+  pendingValidation: false,
   setUserData: () => {},
 });

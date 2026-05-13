@@ -49,8 +49,9 @@ const generateMockUser = (index: number, timestamp: number): UserData => {
     displayName,
     userName,
     photoURL,
-    score: 0, // Cloud function will calculate based on predictions
+    score: 0,
     admin: false,
+    enabled: true,
   };
 };
 

@@ -51,15 +51,16 @@ export const Sidebar = () => {
               to="/rules"
               className="text-white/50 hover:text-white transition-colors flex items-center gap-1"
             >
-              Rules
+              Reglamento
             </Link>
-            <span className="text-white/20">•</span>
-            <Link
-              to="/about"
-              className="text-white/50 hover:text-white transition-colors flex items-center gap-1"
-            >
-              About
-            </Link>
+            {import.meta.env.MODE === 'paid' && (
+              <Link
+                to="/terms"
+                className="text-white/50 hover:text-white transition-colors flex items-center gap-1"
+              >
+                Bases y Condiciones
+              </Link>
+            )}
           </div>
         </div>
       </Card>
