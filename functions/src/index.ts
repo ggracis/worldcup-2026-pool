@@ -103,18 +103,21 @@ export const updateMatchScores = onSchedule('every 1 minutes', async () => {
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const fromDate = startOfDay.toISOString();
-    const toDate = endOfDay.toISOString();
+    // FIFA API rejects ISO dates with milliseconds ("Invalid parameter value: from")
+    const fromDate = startOfDay.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const toDate = endOfDay.toISOString().replace(/\.\d{3}Z$/, 'Z');
 
     // Fetch today's matches from FIFA API
     const apiUrl = `https://api.fifa.com/api/v3/calendar/matches?idseason=${FIFA_SEASON_ID}&idcompetition=${FIFA_COMPETITION_ID}&from=${fromDate}&to=${toDate}&count=500`;
 
     const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error(`FIFA API error: ${response.status}`);
+    // FIFA API returns errors as plain text, sometimes with status 200
+    const body = await response.text();
+    if (!response.ok || !body.startsWith('{')) {
+      throw new Error(`FIFA API error ${response.status}: ${body.slice(0, 200)}`);
     }
 
-    const data = await response.json() as FifaApiResponse;
+    const data = JSON.parse(body) as FifaApiResponse;
 
     // Get current matches from database
     const matchesSnapshot = await db.ref('matches').once('value');
