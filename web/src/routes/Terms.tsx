@@ -122,7 +122,7 @@ export const Terms = () => {
           <div className="space-y-3 text-white/70 text-sm">
             <p>• La participación implica la aceptación de estas bases y condiciones en su totalidad.</p>
             <p>• El administrador se reserva el derecho de descalificar a cualquier participante que intente manipular el sistema o utilizar medios fraudulentos.</p>
-            <p>• Los resultados oficiales utilizados son los de tiempo reglamentario (90 minutos). No se consideran prórrogas ni penales para el cómputo de puntos.</p>
+            <p>• En la fase de grupos se utiliza el resultado de los 90 minutos. En la fase eliminatoria se utiliza el resultado al final del tiempo suplementario (prórroga incluida). La definición por penales NO se considera: un partido resuelto por penales se computa según el marcador con el que terminó (es decir, como empate).</p>
             <p>• Las predicciones se cierran automáticamente 10 minutos antes del inicio de cada partido y no pueden modificarse una vez bloqueadas.</p>
             <p>• Ante cualquier situación no prevista en estas bases, la decisión del administrador es definitiva e inapelable.</p>
           </div>

@@ -5,7 +5,7 @@ import {
   MatchesByGroup,
   MatchesHeader,
 } from '../components';
-import { useMatches } from '../hooks';
+import { useMatches, useWinnersByGame } from '../hooks';
 import type { MatchesData } from '../services';
 
 type ViewMode = 'day' | 'group';
@@ -16,6 +16,7 @@ const isArgentinaMatch = (m: MatchesData[string]) =>
 
 export const Home = () => {
   const { matches, loading, error } = useMatches();
+  const winnersByGame = useWinnersByGame();
   const [viewMode, setViewMode] = React.useState<ViewMode>('day');
   const [showArgentina, setShowArgentina] = React.useState(false);
 
@@ -53,9 +54,15 @@ export const Home = () => {
 
         {visibleMatches &&
           (viewMode === 'day' ? (
-            <MatchesByDay matches={visibleMatches} />
+            <MatchesByDay
+              matches={visibleMatches}
+              winnersByGame={winnersByGame}
+            />
           ) : (
-            <MatchesByGroup matches={visibleMatches} />
+            <MatchesByGroup
+              matches={visibleMatches}
+              winnersByGame={winnersByGame}
+            />
           ))}
       </div>
     </AppLayout>

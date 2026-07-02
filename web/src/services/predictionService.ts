@@ -12,6 +12,10 @@ export interface UserPredictions {
   [gameId: string]: Prediction;
 }
 
+export interface AllPredictions {
+  [userId: string]: UserPredictions;
+}
+
 /**
  * Get all predictions for a user
  */
@@ -82,4 +86,26 @@ export const subscribeToPredictions = (
       callback({});
     }
   });
+};
+
+/**
+ * Subscribe to ALL users' predictions (read is public).
+ * Used to derive cross-user aggregates: daily leaderboard movement and the
+ * list of users who nailed each match's exact score.
+ */
+export const subscribeToAllPredictions = (
+  callback: (predictions: AllPredictions) => void
+): Unsubscribe => {
+  const predictionsRef = ref(db, 'predictions');
+
+  return onValue(
+    predictionsRef,
+    (snapshot) => {
+      callback(snapshot.exists() ? (snapshot.val() as AllPredictions) : {});
+    },
+    (error) => {
+      console.error('[subscribeToAllPredictions] error:', error.message);
+      callback({});
+    }
+  );
 };

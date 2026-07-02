@@ -1,15 +1,20 @@
+import { useEffect, useRef } from 'react';
 import {
   type Match,
   type MatchesData,
   type UserPredictions,
 } from '../../services';
+import { type WinnerBrief } from '../../utils';
 import { MatchCard } from './MatchCard';
+
+const ARG_TZ = 'America/Argentina/Buenos_Aires';
 
 type MatchesByDayProps = {
   matches: MatchesData;
   isOwnProfile?: boolean;
   userId?: string;
   predictions?: UserPredictions;
+  winnersByGame?: Record<string, WinnerBrief[]>;
 };
 
 export const MatchesByDay = ({
@@ -17,6 +22,7 @@ export const MatchesByDay = ({
   isOwnProfile,
   userId,
   predictions,
+  winnersByGame,
 }: MatchesByDayProps) => {
   // Group matches by date (day)
   const groupedByDay = Object.values(matches).reduce<Record<string, Match[]>>(
@@ -46,10 +52,33 @@ export const MatchesByDay = ({
     return dateA.getTime() - dateB.getTime();
   });
 
+  // Día al que queremos scrollear: hoy, o el primer día futuro con partidos.
+  // Comparamos como 'YYYY-MM-DD' en hora Argentina (orden lexicográfico = cronológico).
+  const todayArg = new Date().toLocaleDateString('sv-SE', { timeZone: ARG_TZ });
+  const targetDay = sortedDays.find(
+    (day) =>
+      new Date(groupedByDay[day][0].date).toLocaleDateString('sv-SE', {
+        timeZone: ARG_TZ,
+      }) >= todayArg
+  );
+
+  const targetRef = useRef<HTMLDivElement>(null);
+  const scrolledRef = useRef(false);
+  useEffect(() => {
+    if (!scrolledRef.current && targetRef.current) {
+      targetRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrolledRef.current = true;
+    }
+  }, [targetDay]);
+
   return (
     <div className="flex flex-col gap-6">
       {sortedDays.map((day) => (
-        <div key={day}>
+        <div
+          key={day}
+          ref={day === targetDay ? targetRef : undefined}
+          className="scroll-mt-20"
+        >
           <h3 className="text-lg font-semibold mb-3 text-white/80 pb-2">
             {day}
           </h3>
@@ -63,6 +92,7 @@ export const MatchesByDay = ({
                   isOwnProfile={isOwnProfile}
                   userId={userId}
                   prediction={predictions?.[match.game]}
+                  winners={winnersByGame?.[String(match.game)]}
                 />
               ))}
           </div>

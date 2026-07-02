@@ -29,6 +29,9 @@
 
     // Predictions - anyone can read, users can only write their own (admins can write any)
     "predictions": {
+      // Anyone can read the full list (predictions are already public per-user;
+      // this enables cross-user aggregates: daily movement and exact-score winners)
+      ".read": true,
       "$userId": {
         // Anyone can read predictions (to view other users' predictions)
         ".read": true,

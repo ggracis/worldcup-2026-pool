@@ -3,7 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import { ProtectedRoute } from './components';
-import { AuthProvider, MatchProvider, LeagueProvider, ToastProvider } from './context';
+import {
+  AuthProvider,
+  MatchProvider,
+  LeagueProvider,
+  ToastProvider,
+  AllPredictionsProvider,
+} from './context';
 import {
   About,
   AdminUsers,
@@ -52,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
       <ToastProvider>
         <LeagueProvider>
           <MatchProvider>
+            <AllPredictionsProvider>
             <BrowserRouter>
               <PendingGate>
                 <Routes>
@@ -96,6 +103,7 @@ createRoot(document.getElementById('root')!).render(
                 </Routes>
               </PendingGate>
             </BrowserRouter>
+            </AllPredictionsProvider>
           </MatchProvider>
         </LeagueProvider>
       </ToastProvider>

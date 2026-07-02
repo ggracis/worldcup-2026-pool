@@ -17,6 +17,10 @@ interface Match {
   fifaId: string;
   homeScore: number;
   awayScore: number;
+  home: string;
+  homeName: string;
+  away: string;
+  awayName: string;
 }
 
 interface MatchFull extends Match {
@@ -39,8 +43,8 @@ interface Prediction {
 
 interface FifaMatch {
   IdMatch: string;
-  Home: { Score: number | null };
-  Away: { Score: number | null };
+  Home: { Score: number | null; Abbreviation: string | null; ShortClubName: string | null };
+  Away: { Score: number | null; Abbreviation: string | null; ShortClubName: string | null };
 }
 
 interface FifaApiResponse {
@@ -96,19 +100,13 @@ export const updateMatchScores = onSchedule('every 1 minutes', async () => {
   logger.info('Updating match scores from FIFA API...');
 
   try {
-    // Get today's date range
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // FIFA API rejects ISO dates with milliseconds ("Invalid parameter value: from")
-    const fromDate = startOfDay.toISOString().replace(/\.\d{3}Z$/, 'Z');
-    const toDate = endOfDay.toISOString().replace(/\.\d{3}Z$/, 'Z');
-
-    // Fetch today's matches from FIFA API
-    const apiUrl = `https://api.fifa.com/api/v3/calendar/matches?idseason=${FIFA_SEASON_ID}&idcompetition=${FIFA_COMPETITION_ID}&from=${fromDate}&to=${toDate}&count=500`;
+    // Fetch ALL tournament matches from FIFA API (no date filter).
+    // With only ~104 matches the payload is tiny (~225 KB), and filtering by
+    // day broke late games: a kickoff >= 22:00 UTC has its second half and
+    // final score land after midnight UTC, by which time the daily window has
+    // rolled over to the next day and no longer includes the match. Matching by
+    // fifaId makes the date filter unnecessary anyway.
+    const apiUrl = `https://api.fifa.com/api/v3/calendar/matches?idseason=${FIFA_SEASON_ID}&idcompetition=${FIFA_COMPETITION_ID}&count=500`;
 
     const response = await fetch(apiUrl);
     // FIFA API returns errors as plain text, sometimes with status 200
@@ -128,8 +126,8 @@ export const updateMatchScores = onSchedule('every 1 minutes', async () => {
       return;
     }
 
-    // Update scores for matching games
-    const updates: Record<string, number> = {};
+    // Update scores (and knockout team names) for matching games
+    const updates: Record<string, number | string> = {};
 
     for (const fifaMatch of data.Results) {
       for (const [gameId, match] of Object.entries(matches)) {
@@ -145,6 +143,29 @@ export const updateMatchScores = onSchedule('every 1 minutes', async () => {
           if (match.awayScore !== awayScore && awayScore >= 0) {
             updates[`matches/${gameId}/awayScore`] = awayScore;
             logger.info(`Updated game ${gameId} away score: ${awayScore}`);
+          }
+
+          // Knockout: fill in the real teams once FIFA defines the bracket.
+          // Abbreviation/ShortClubName are null while the slot is still a
+          // placeholder (e.g. "2A"), so we only write once they resolve.
+          const homeAbbr = fifaMatch.Home?.Abbreviation;
+          const homeName = fifaMatch.Home?.ShortClubName;
+          const awayAbbr = fifaMatch.Away?.Abbreviation;
+          const awayName = fifaMatch.Away?.ShortClubName;
+
+          if (homeAbbr && match.home !== homeAbbr) {
+            updates[`matches/${gameId}/home`] = homeAbbr;
+            logger.info(`Updated game ${gameId} home team: ${homeAbbr}`);
+          }
+          if (homeName && match.homeName !== homeName) {
+            updates[`matches/${gameId}/homeName`] = homeName;
+          }
+          if (awayAbbr && match.away !== awayAbbr) {
+            updates[`matches/${gameId}/away`] = awayAbbr;
+            logger.info(`Updated game ${gameId} away team: ${awayAbbr}`);
+          }
+          if (awayName && match.awayName !== awayName) {
+            updates[`matches/${gameId}/awayName`] = awayName;
           }
         }
       }
@@ -261,6 +282,21 @@ export const updateUserScore = onValueWritten(
 
 const SITE_URL = process.env.SITE_URL ?? 'https://prode.gastongracis.dev';
 const APP_NAME = process.env.APP_NAME ?? 'Mundial de Fútbol 26';
+
+const ROUND_NAMES_ES: Record<string, string> = {
+  'Round of 32': 'Dieciseisavos de final',
+  'Round of 16': 'Octavos de final',
+  'Quarter-Final': 'Cuartos de final',
+  'Quarter Final': 'Cuartos de final',
+  'Semi-Final': 'Semifinales',
+  'Semi Final': 'Semifinales',
+  'Third Place': 'Tercer puesto',
+  'Third-Place': 'Tercer puesto',
+  'Final': 'Final',
+};
+
+const translateRound = (round: string): string =>
+  ROUND_NAMES_ES[round] ?? round;
 
 interface EmailOptions {
   icon: string;
@@ -501,7 +537,7 @@ export const sendWeeklyReminders = onSchedule('0 12 * * 1', async () => {
 
 /**
  * Runs daily at 14:00 UTC (11:00 AM Argentina).
- * Detects when a new knockout phase starts within the next 72 hours.
+ * Detects when a new knockout phase starts within the next 36 hours.
  * Sends a notification to ALL users (once per phase, tracked in DB).
  */
 export const sendPhaseStartReminders = onSchedule('0 14 * * *', async () => {
@@ -515,7 +551,7 @@ export const sendPhaseStartReminders = onSchedule('0 14 * * *', async () => {
   }
 
   const now = Date.now();
-  const lookahead = now + 72 * 60 * 60 * 1000;
+  const lookahead = now + 36 * 60 * 60 * 1000;
 
   const [matchesSnap, notifiedSnap, usersSnap] = await Promise.all([
     db.ref('matches').once('value'),
@@ -566,14 +602,15 @@ export const sendPhaseStartReminders = onSchedule('0 14 * * *', async () => {
       )
       .join('');
 
-    const subject = `🏆 Empieza ${phase} — cargá tus predicciones`;
+    const phaseName = translateRound(phase);
+    const subject = `🏆 Empieza ${phaseName} — cargá tus predicciones`;
 
     const html = buildEmailHtml({
       icon: '🏆',
-      title: phase,
+      title: phaseName,
       subtitle: 'Nueva fase del torneo',
       body: `<p style="margin:0 0 8px;font-size:16px;color:#f3f4f6;">
-        ¡Arranca <strong style="color:#fff;">${phase}</strong>! Cargá tus predicciones antes de que empiece cada partido:
+        ¡Arranca <strong style="color:#fff;">${phaseName}</strong>! Cargá tus predicciones antes de que empiece cada partido:
       </p>
       <p style="margin:0;font-size:13px;color:#9ca3af;">
         Las predicciones cierran <strong style="color:#f59e0b;">10 minutos antes</strong> de cada partido — podés predecir partido a partido.

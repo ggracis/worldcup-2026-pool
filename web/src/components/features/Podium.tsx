@@ -1,19 +1,22 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks';
 import { type UserWithId } from '../../services';
+import { type RecentMovement } from '../../utils';
 import { ProfilePicture } from '../ui/ProfilePicture';
+import { MovementIndicator } from './MovementIndicator';
 
-// Podium item component
 const PodiumItem = ({
   user,
   position,
   height,
   isCurrentUser,
+  movement,
 }: {
   user: UserWithId;
   position: number;
   height: string;
   isCurrentUser: boolean;
+  movement?: RecentMovement;
 }) => (
   <Link
     to={`/${user.userName}`}
@@ -74,6 +77,7 @@ const PodiumItem = ({
       <span className="text-white font-bold mt-2 text-sm sm:text-lg">
         {user.score} pts
       </span>
+      <MovementIndicator movement={movement} className="justify-center mt-0.5" />
     </div>
     {/* Elliptical shadow from object above */}
     <div className="w-10 h-2 rounded-full -mt-1 mb-1 z-20 blur-sm bg-black/80" />
@@ -110,8 +114,13 @@ const PodiumItem = ({
   </Link>
 );
 
-// Podium component for top 3
-export const Podium = ({ users }: { users: UserWithId[] }) => {
+export const Podium = ({
+  users,
+  movement = {},
+}: {
+  users: UserWithId[];
+  movement?: Record<string, RecentMovement>;
+}) => {
   const { user: currentUser } = useAuth();
 
   if (users.length < 3) return null;
@@ -125,18 +134,21 @@ export const Podium = ({ users }: { users: UserWithId[] }) => {
           position={2}
           height="h-18 sm:h-20"
           isCurrentUser={currentUser?.uid === second.id}
+          movement={movement[second.id]}
         />
         <PodiumItem
           user={first}
           position={1}
           height="h-24 sm:h-28"
           isCurrentUser={currentUser?.uid === first.id}
+          movement={movement[first.id]}
         />
         <PodiumItem
           user={third}
           position={3}
           height="h-12 sm:h-16"
           isCurrentUser={currentUser?.uid === third.id}
+          movement={movement[third.id]}
         />
       </div>
 

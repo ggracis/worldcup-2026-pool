@@ -21,8 +21,13 @@ export {
   getUserPredictions,
   savePrediction,
   subscribeToPredictions,
+  subscribeToAllPredictions,
 } from './predictionService';
-export type { Prediction, UserPredictions } from './predictionService';
+export type {
+  Prediction,
+  UserPredictions,
+  AllPredictions,
+} from './predictionService';
 
 export {
   checkSlugAvailable,

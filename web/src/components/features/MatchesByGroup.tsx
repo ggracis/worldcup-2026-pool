@@ -3,6 +3,7 @@ import {
   type MatchesData,
   type UserPredictions,
 } from '../../services';
+import { type WinnerBrief } from '../../utils';
 import { MatchCard } from './MatchCard';
 
 type MatchesByGroupProps = {
@@ -10,6 +11,7 @@ type MatchesByGroupProps = {
   isOwnProfile?: boolean;
   userId?: string;
   predictions?: UserPredictions;
+  winnersByGame?: Record<string, WinnerBrief[]>;
 };
 
 export const MatchesByGroup = ({
@@ -17,6 +19,7 @@ export const MatchesByGroup = ({
   isOwnProfile,
   userId,
   predictions,
+  winnersByGame,
 }: MatchesByGroupProps) => {
   // Group matches by group (or round if group is null)
   const groupedMatches = Object.values(matches).reduce<Record<string, Match[]>>(
@@ -66,6 +69,7 @@ export const MatchesByGroup = ({
                   isOwnProfile={isOwnProfile}
                   userId={userId}
                   prediction={predictions?.[match.game]}
+                  winners={winnersByGame?.[String(match.game)]}
                 />
               ))}
           </div>

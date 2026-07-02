@@ -1,10 +1,17 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth, useLeague } from '../../hooks';
+import { useAuth, useLeague, useAllPredictions, useMatches } from '../../hooks';
 import { subscribeToLeaderboard, type UserWithId } from '../../services';
-import { getPositionCompact } from '../../utils';
+import {
+  getPositionCompact,
+  getRecentlyPlayedGames,
+  computeRecentPoints,
+  computeRecentMovement,
+  type RecentMovement,
+} from '../../utils';
 import { Card, ProfilePicture } from '../ui';
 import { LeaguePicture } from './LeaguePicture';
+import { MovementIndicator } from './MovementIndicator';
 import { Podium } from './Podium';
 import appIcon from '/app-icon.png';
 
@@ -20,12 +27,14 @@ const UserRow = ({
   isCurrentUser,
   compact,
   onRemove,
+  movement,
 }: {
   user: UserWithId;
   position: number;
   isCurrentUser: boolean;
   compact: boolean;
   onRemove?: () => void;
+  movement?: RecentMovement;
 }) => (
   <div
     className={`flex items-center gap-2 rounded-lg transition-colors px-2 py-1.5 ${
@@ -39,7 +48,7 @@ const UserRow = ({
       className="flex items-center gap-2 flex-1 min-w-0"
     >
       <span
-        className={`text-center ${compact ? 'w-6 text-sm' : 'w-12 text-lg'}`}
+        className={`text-center shrink-0 ${compact ? 'w-6 text-sm' : 'w-8 md:w-12 text-sm md:text-lg'}`}
       >
         {getPositionCompact(position)}
       </span>
@@ -55,15 +64,16 @@ const UserRow = ({
           {user.displayName}
         </div>
         {!compact && (
-          <div className="text-white/50 text-sm">@{user.userName}</div>
+          <div className="text-white/50 text-xs md:text-sm truncate">@{user.userName}</div>
         )}
       </div>
       <span
-        className={`text-white/70 font-medium ${compact ? 'text-sm' : 'text-lg'}`}
+        className={`font-medium shrink-0 ${compact ? 'text-sm text-white/70' : 'text-sm md:text-lg text-white/70'}`}
       >
         {user.score}
-        {!compact && <span className="text-sm font-normal"> pts</span>}
+        {!compact && <span className="text-xs md:text-sm font-normal"> pts</span>}
       </span>
+      <MovementIndicator movement={movement} />
     </Link>
     {onRemove && (
       <button
@@ -85,6 +95,8 @@ export const LeaderboardList = ({
   const { user: currentUser } = useAuth();
   const { leagues, selectedLeague, setSelectedLeague, leagueMemberIds } =
     useLeague();
+  const { allPredictions } = useAllPredictions();
+  const { matches } = useMatches();
   const location = useLocation();
   const navigate = useNavigate();
   const isOnLeaguePage = location.pathname.startsWith('/league/');
@@ -126,6 +138,16 @@ export const LeaderboardList = ({
     if (!selectedLeague || leagueMemberIds.length === 0) return allUsers;
     return allUsers.filter((user) => leagueMemberIds.includes(user.id));
   }, [externalUsers, selectedLeague, leagueMemberIds, allUsers]);
+
+  // Movimiento de las últimas 24h (subió/bajó + puntos), derivado sin historial.
+  // Se calcula sobre el conjunto mostrado (global o liga).
+  const movement = React.useMemo(() => {
+    if (!allPredictions || !matches) return {};
+    const recentGames = getRecentlyPlayedGames(matches);
+    if (recentGames.length === 0) return {};
+    const recentPoints = computeRecentPoints(allPredictions, recentGames);
+    return computeRecentMovement(users, recentPoints);
+  }, [allPredictions, matches, users]);
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -225,7 +247,7 @@ export const LeaderboardList = ({
           </h3>
         ))}
       {/* Podium for full variant */}
-      {!isCompact && <Podium users={podiumUsers} />}
+      {!isCompact && <Podium users={podiumUsers} movement={movement} />}
 
       {/* User list - wrapped in Card for full variant */}
       {isCompact ? (
@@ -247,6 +269,7 @@ export const LeaderboardList = ({
                 position={index + 1}
                 isCurrentUser={currentUser?.uid === user.id}
                 compact
+                movement={movement[user.id]}
                 onRemove={
                   onRemoveMember
                     ? () => onRemoveMember(user.id, user.displayName)
@@ -258,7 +281,7 @@ export const LeaderboardList = ({
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-black to-transparent pointer-events-none" />
         </div>
       ) : (
-        <Card className="p-4">
+        <Card className="p-2 md:p-4 overflow-hidden">
           <div className="flex flex-col gap-1">
             {restUsers.map((user, index) => (
               <UserRow
@@ -267,6 +290,7 @@ export const LeaderboardList = ({
                 position={users.length >= 3 ? index + 4 : index + 1}
                 isCurrentUser={currentUser?.uid === user.id}
                 compact={false}
+                movement={movement[user.id]}
                 onRemove={
                   onRemoveMember
                     ? () => onRemoveMember(user.id, user.displayName)

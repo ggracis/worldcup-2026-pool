@@ -7,7 +7,7 @@ import {
   MatchesHeader,
   UserHeader,
 } from '../components';
-import { useMatches, useAuth } from '../hooks';
+import { useMatches, useAuth, useWinnersByGame } from '../hooks';
 import {
   type UserPredictions,
   subscribeToPredictions,
@@ -20,6 +20,7 @@ export const UserProfile = () => {
   const { userName } = useParams();
   const { matches, loading: matchesLoading, error } = useMatches();
   const { user, userData } = useAuth();
+  const winnersByGame = useWinnersByGame();
   const [viewMode, setViewMode] = React.useState<ViewMode>('day');
   const [predictions, setPredictions] = React.useState<UserPredictions>({});
   const [profileUserId, setProfileUserId] = React.useState<string | null>(null);
@@ -88,6 +89,7 @@ export const UserProfile = () => {
                   isOwnProfile={isOwnProfile}
                   userId={profileUserId ?? undefined}
                   predictions={predictions}
+                  winnersByGame={winnersByGame}
                 />
               ) : (
                 <MatchesByGroup
@@ -95,6 +97,7 @@ export const UserProfile = () => {
                   isOwnProfile={isOwnProfile}
                   userId={profileUserId ?? undefined}
                   predictions={predictions}
+                  winnersByGame={winnersByGame}
                 />
               ))}
           </>
